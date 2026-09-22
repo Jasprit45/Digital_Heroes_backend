@@ -13,8 +13,37 @@ dotenv.config();
 const app = express();
 
 // Security Middlewares
+import cors from "cors";
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests without an Origin header
+      // such as Postman/server-to-server requests.
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(helmet());
-app.use(cors());
+app.use(cors(corsOptions));
+
+app.use(express.json());
 
 // Webhook Raw Body Parser (Must be registered before express.json)
 const apiPrefix = process.env.API_PREFIX || '/api/v1';
