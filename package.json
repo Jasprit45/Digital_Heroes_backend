@@ -1,0 +1,44 @@
+{
+  "name": "digital-heroes-server",
+  "version": "1.0.0",
+  "description": "Backend server for Digital Heroes platform — Golf performance, charity draw, and reward engine",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/database/runMigrations.js",
+    "test:auth": "node tests/auth.test.js",
+    "test:sub": "node tests/subscription.test.js",
+    "test:score": "node tests/score.test.js",
+    "test:draw": "node tests/draw.test.js",
+    "test:winner": "node tests/winner.test.js",
+    "test:admin": "node tests/admin.test.js",
+    "test": "node tests/auth.test.js && node tests/subscription.test.js && node tests/score.test.js && node tests/draw.test.js && node tests/winner.test.js && node tests/admin.test.js"
+  },
+  "keywords": [
+    "digital-heroes",
+    "express",
+    "postgresql",
+    "supabase",
+    "stripe"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
+    "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.3",
+    "morgan": "^1.10.0",
+    "multer": "^2.4.0",
+    "pg": "^8.13.3",
+    "stripe": "^22.6.2",
+    "zod": "^4.6.5"
+  }
+}
