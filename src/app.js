@@ -50,11 +50,15 @@ app.use(helmet());
 // Webhook Raw Body Parser (Must be registered before standard json parser for Stripe signatures)
 const apiPrefix = process.env.API_PREFIX || '/api/v1';
 const webhookController = require('./modules/subscriptions/webhook.controller');
-app.post(
-  `${apiPrefix}/webhooks/stripe`,
+const stripeWebhookMiddleware = [
   express.raw({ type: 'application/json' }),
   (req, res, next) => webhookController.handleStripeWebhook(req, res, next)
-);
+];
+app.post(`${apiPrefix}/webhooks/stripe`, stripeWebhookMiddleware);
+if (apiPrefix !== '/v1') {
+  app.post('/v1/webhooks/stripe', stripeWebhookMiddleware);
+}
+app.post('/webhooks/stripe', stripeWebhookMiddleware);
 
 // 3. Request Body & Cookie Parsing Middlewares
 app.use(express.json());
@@ -64,8 +68,12 @@ app.use(cookieParser());
 // 4. HTTP Request Logger Middleware
 app.use(requestLogger);
 
-// 5. API Routes mounting under /api/v1
+// 5. API Routes mounting under /api/v1 (plus /v1 and root / for Vercel serverless rewrites)
 app.use(apiPrefix, apiRoutes);
+if (apiPrefix !== '/v1') {
+  app.use('/v1', apiRoutes);
+}
+app.use('/', apiRoutes);
 
 // 6. Handle 404 Undefined Routes
 app.all('*', (req, res, next) => {
