@@ -2,12 +2,16 @@ const authService = require('./auth.service');
 
 const COOKIE_NAME = 'refreshToken';
 
-const getCookieOptions = () => ({
-  httpOnly: true,
-  secure: process.env.NODE_ENV === 'production',
-  sameSite: 'strict',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
-});
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+    path: '/',
+  };
+};
 
 class AuthController {
   /**
@@ -83,10 +87,12 @@ class AuthController {
       await authService.logout(rawRefreshToken);
 
       // Clear cookie
+      const isProduction = process.env.NODE_ENV === 'production';
       res.clearCookie(COOKIE_NAME, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: isProduction,
+        sameSite: isProduction ? 'none' : 'lax',
+        path: '/',
       });
 
       res.status(200).json({

@@ -12,40 +12,42 @@ dotenv.config();
 
 const app = express();
 
-// Security Middlewares
-import cors from "cors";
+// 1. Centralized CORS Policy (MUST be registered first before any auth/router middleware)
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'https://digital-heroes-client.vercel.app',
+  ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL.replace(/\/$/, '')] : [])
+]);
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  process.env.FRONTEND_URL
-].filter(Boolean);
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow non-browser requests (e.g. curl, server-to-server, Postman) without an Origin header
+    if (!origin) {
+      return callback(null, true);
+    }
+    const cleanOrigin = origin.replace(/\/$/, '');
+    if (allowedOrigins.has(cleanOrigin)) {
+      return callback(null, true);
+    }
+    // Block origin gracefully without throwing Express error
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 204
+};
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow requests without an Origin header
-      // such as Postman/server-to-server requests.
-      if (!origin) {
-        return callback(null, true);
-      }
-
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error(`CORS blocked origin: ${origin}`));
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-app.use(helmet());
+// Mount CORS middleware globally
 app.use(cors(corsOptions));
 
-app.use(express.json());
+// Explicit preflight handler for all routes
+app.options('*', cors(corsOptions));
 
-// Webhook Raw Body Parser (Must be registered before express.json)
+// 2. Security Headers (Helmet)
+app.use(helmet());
+
+// Webhook Raw Body Parser (Must be registered before standard json parser for Stripe signatures)
 const apiPrefix = process.env.API_PREFIX || '/api/v1';
 const webhookController = require('./modules/subscriptions/webhook.controller');
 app.post(
@@ -54,23 +56,23 @@ app.post(
   (req, res, next) => webhookController.handleStripeWebhook(req, res, next)
 );
 
-// Request Body & Cookie Parsing Middlewares
+// 3. Request Body & Cookie Parsing Middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// HTTP Request Logger Middleware
+// 4. HTTP Request Logger Middleware
 app.use(requestLogger);
 
-// API Routes mounting under /api/v1
+// 5. API Routes mounting under /api/v1
 app.use(apiPrefix, apiRoutes);
 
-// Handle 404 Undefined Routes
+// 6. Handle 404 Undefined Routes
 app.all('*', (req, res, next) => {
   next(new AppError(`Cannot find endpoint ${req.originalUrl} on this server.`, 404));
 });
 
-// Global Centralized Error Handling Middleware
+// 7. Global Centralized Error Handling Middleware
 app.use(globalErrorHandler);
 
 module.exports = app;
